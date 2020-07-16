@@ -1,5 +1,6 @@
 plugins {
 	id 'java-library'
+	id 'maven-publish'
 }
 
 repositories {
@@ -8,4 +9,51 @@ repositories {
 
 dependencies {
 	testImplementation 'junit:junit:4.13'
+}
+
+if (System.getenv('GITHUB_ACTIONS')) {
+	def repository = System.getenv('GITHUB_REPOSITORY')
+	def repoUrl = System.getenv('GITHUB_SERVER_URL') + "/${repository}"
+	def baseRepoUrl = repoUrl.substring('https://'.length())
+
+	publishing {
+		repositories {
+			maven {
+				name = 'GitHubPackages'
+				url = "https://maven.pkg.github.com/${repository}"
+				credentials {
+					username = repository.substring(0, repository.indexOf('/'))
+					password = project.findProperty('gpr.key')
+				}
+			}
+		}
+		publications {
+			gpr(MavenPublication) {
+				artifactId = artifact
+				from components.java
+				pom {
+					name = 'testlib'
+					description = 'Test Library'
+					url = repoUrl
+					licenses {
+						license {
+							name = 'MIT License'
+							url = "${repoUrl}/blob/master/LICENSE"
+						}
+					}
+					developers {
+						developer {
+							name = 'Thomas Bateson'
+							email = 'thomas.bateson@eagles.oc.edu'
+						}
+					}
+					scm {
+						connection = "scm:git:git://${baseRepoUrl}.git"
+						developerConnection = "scm:git:ssh://${baseRepoUrl}.git"
+						url = repoUrl
+					}
+				}
+			}
+		}
+	}
 }
